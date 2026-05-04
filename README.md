@@ -95,10 +95,10 @@ function doGet() {
 接下來請建立「建立本地網頁 (index.html)」
 
 
-## 2. 開啟網頁
-1. 打開本專案的 [Live Demo](https://你的帳號名稱.github.io/productivity-mirror/)。
+## 2. 新增網頁
+1. 請先複製index.html，然後在你的電腦中打開
 2. 在頂部輸入框貼上你的 **GAS URL**。
-3. 點擊 **Sync Calendar**，開始你的高產的一天。
+3. 點擊 **Sync Calendar**，開始你的工作的一天。
 
 ---
 
