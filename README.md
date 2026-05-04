@@ -7,7 +7,7 @@
 
 **Productivity Mirror** 是一個極簡且高效的個人生產力追蹤工具。它能將你 Google 日曆上的「計畫行程」與現實中的「實際執行」進行即時對焦，幫助你發現時間感知的偏差，進而優化工作節奏。
 
-[Live Demo 連結](https://你的帳號名稱.github.io/productivity-mirror/) *(請記得換成你的網址)*
+[Live Demo 連結](https://hungurlea.github.io/productivity-mirror/) 
 
 ---
 
