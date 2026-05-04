@@ -48,6 +48,10 @@
 點擊 「新專案」。
 刪除原本的代碼，貼上以下這段：
 
+<details>
+  <summary>📄 查看 Google Apps Script (GAS) 程式碼</summary>
+  
+```
 function doGet() {
   const today = new Date();
   const events = CalendarApp.getDefaultCalendar().getEventsForDay(today);
@@ -75,7 +79,7 @@ function doGet() {
   return ContentService.createTextOutput(JSON.stringify(data))
     .setMimeType(ContentService.MimeType.JSON);
 }
-
+```
 ---
 
 
@@ -91,7 +95,7 @@ function doGet() {
 接下來請建立「建立本地網頁 (index.html)」
 
 
-### 2. 開啟網頁
+## 2. 開啟網頁
 1. 打開本專案的 [Live Demo](https://你的帳號名稱.github.io/productivity-mirror/)。
 2. 在頂部輸入框貼上你的 **GAS URL**。
 3. 點擊 **Sync Calendar**，開始你的高產的一天。
