@@ -76,6 +76,10 @@ function doGet() {
     .setMimeType(ContentService.MimeType.JSON);
 }
 
+---
+
+
+
 
 部署： 點擊右上角 「部署」 > 「新增部署」。
 類型： 選擇 「網頁應用程式」。
