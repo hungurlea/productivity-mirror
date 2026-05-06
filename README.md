@@ -1,107 +1,54 @@
-# productivity-mirror
+# 🪞 Productivity Mirror | 療癒系生產力之鏡
 
-# 🪞 Productivity Mirror | 生產力之鏡
+![Status](https://img.shields.io/badge/status-active-brightgreen)
+![Model](https://img.shields.io/badge/AI-Gemini%203%20Flash-blueviolet)
 
-![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)
-![Status](https://img.shields.io/badge/status-live-success.svg)
+**Productivity Mirror** 是一個結合了 **Google Calendar**、**秒級精確計時器**與 **Gemini AI** 的個人生產力追蹤器。它不只紀錄時間，更是一位在你疲憊時給予溫暖鼓勵的「療癒系導師」。
 
-**Productivity Mirror** 是一個極簡且高效的個人生產力追蹤工具。它能將你 Google 日曆上的「計畫行程」與現實中的「實際執行」進行即時對焦，幫助你發現時間感知的偏差，進而優化工作節奏。
+## ✨ 核心特色
 
-[Live Demo 連結](https://hungurlea.github.io/productivity-mirror/) 
-
----
-
-## ✨ 核心功能
-
-- **📅 日曆同步**：一鍵從 Google Calendar 抓取當日行程與會議。
-- **🤖 自動分類**：智慧識別「會議」（多人）與「產出任務」（個人）。
-- **⏱️ 即時計時器**：內建碼錶功能，隨手點擊即可追蹤任務進度。
-- **📊 數據視覺化**：透過 Chart.js 生成時間分配比例圖與「計畫 vs. 實際」對比圖。
-- **🎨 AutoSheet 風格**：採用現代 SaaS 介面設計，乾淨、專業、無壓力的淺色模式。
-- **🔒 隱私保護**：GAS URL 儲存於瀏覽器 LocalStorage，不經過後端伺服器，確保隱私。
+- **📅 日曆同步**：自動識別「會議」(多人) 與「任務」(個人)。
+- **⏱️ 專業級計時器**：支援時分秒 (HH:MM:SS) 顯示、暫停/繼續功能，並有動態運行特效。
+- **📊 數據可視化**：
+  - **時間分配圓餅圖**：即時分析開會與產出的比例。
+  - **計畫 vs 實際長條圖**：直觀呈現時間感知的偏差。
+- **🌿 溫柔 AI 教練**：採用最新 `gemini-3-flash-preview`，提供正向、溫暖且具洞察力的每日回顧。
 
 ---
 
-## 🛠️ 技術棧
+## ⚠️ 重要注意事項 (Must-Read)
 
-- **Frontend**: HTML5, Tailwind CSS, JavaScript (ES6)
-- **Charts**: [Chart.js](https://www.chartjs.org/)
-- **Backend Proxy**: Google Apps Script (GAS)
-- **Deployment**: GitHub Pages
+在開始使用前，請務必閱讀以下設定關鍵，以確保程式正常運行：
+
+### 🔑 1. API Key 安全性
+- **取得方式**：請至 [Google AI Studio](https://aistudio.google.com/app/apikey) 點擊 "Create API key"。
+- **安全性提示**：**請勿將含有真實 API Key 的程式碼上傳至公開的 GitHub 倉庫！** 建議在 `Code.gs` 中將 Key 保留為空字串，或使用私有倉庫。
+
+### 🚀 2. GAS 部署「新版本」
+- 每次修改 Google Apps Script 程式碼後，必須點擊：**「部署」 > 「管理部署」 > 「編輯 (筆圖標)」 > 版本選擇「新版本 (New Version)」**。
+- 若未選擇「新版本」，網頁端將永遠執行舊版的程式碼。
+
+### 🤖 3. 模型設定 (Model)
+- 本專案預設使用 `gemini-3-flash-preview`。
+- 若您的 API Key 尚未支援此預覽模型，請將 GAS 程式碼中的 URL 修改為 `gemini-1.5-flash`。
+
+### 🔒 4. 權限設定
+- 首次執行時，Google 會提示「此應用程式未經驗證」，請點擊 **「進階」 > 「前往... (不安全)」** 並允許權限，否則無法讀取日曆。
 
 ---
 
 ## 🚀 快速開始
 
-### 1. 部署 Google Apps Script
-為了安全且免費地存取日曆，你需要建立一個 GAS 代理：
+### 第一步：設置 Google Apps Script (後端)
+1. 前往 [Google Apps Script](https://script.google.com/) 建立新專案。
+2. 貼入本專案提供的 `Code.gs` 代碼。
+3. 填入你的 API Key 並完成「新版本」部署。
+4. 複製生成的 **Web App URL**。
 
-1. 前往 [Google Apps Script](https://script.google.com/) 並建立新專案。
-2. 貼入專案提供的 `code.gs` 腳本（負責抓取 Calendar 資料）。
-3. 點擊「部署」 > 「新增部署」 > 類型選擇「網頁應用程式」。
-4. **設定：** 執行身份為「我」，誰可以存取為「所有人 (Anyone)」。
-5. 複製生成的 **Web App URL**。
-
-### 1.5  Google Apps Script完整代碼
-
-前往 Google Apps Script。
-點擊 「新專案」。
-刪除原本的代碼，貼上以下這段：
-
-<details>
-  <summary>📄 查看 Google Apps Script (GAS) 程式碼</summary>
-  
-```
-function doGet() {
-  const today = new Date();
-  const events = CalendarApp.getDefaultCalendar().getEventsForDay(today);
-  
-  const data = events.map(event => {
-    const start = event.getStartTime();
-    const end = event.getEndTime();
-    const duration = (end - start) / (1000 * 60); // 預計分鐘數
-    
-    // 判斷是否為會議：若有除了自己以外的訪客即為會議
-    const guestCount = event.getGuestList().length;
-    const type = guestCount > 0 ? "會議" : "任務";
-    
-    return {
-      id: event.getId(),
-      title: event.getTitle(),
-      startTime: start.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
-      plannedMinutes: duration,
-      type: type,
-      color: type === "會議" ? "#f87171" : "#60a5fa" // 會議紅，任務藍
-    };
-  });
-
-  // 回傳 JSON 給網頁
-  return ContentService.createTextOutput(JSON.stringify(data))
-    .setMimeType(ContentService.MimeType.JSON);
-}
-```
----
-
-
-
-
-部署： 點擊右上角 「部署」 > 「新增部署」。
-類型： 選擇 「網頁應用程式」。
-設定： * 「誰可以存取」請務必選擇 「所有人」(Anyone)（這樣你本地的網頁才抓得到）。
-「執行身份」選 「我」。
-授權： 點擊部署後會彈出視窗，請一路點擊「授予存取權限」-> 選擇你的帳號 -> 「進階」 -> 「前往『未命名專案』(不安全)」 -> 「允許」。
-複製網址： 部署成功後，你會得到一個 「網頁應用程式 URL」。請先把這個網址記下來。
-
-接下來請建立「建立本地網頁 (index.html)」
-
-
-## 2. 新增網頁
-1. 請先複製index.html，然後在你的電腦中打開
-2. 在頂部輸入框貼上你的 **GAS URL**。
-3. 點擊 **Sync Calendar**，開始你的工作的一天。
+### 第二步：設置 HTML (前端)
+1. 將本倉庫的 `index.html` 上傳至 GitHub。
+2. 開啟 **GitHub Pages** 功能。
+3. 在網頁中貼入你的 GAS URL，點擊「同步日曆」即可開始。
 
 ---
-
-## 📝 授權
-
-本專案採用 [MIT License](LICENSE) 授權。
+*Developed with ❤️ and Vibe Coding.*
