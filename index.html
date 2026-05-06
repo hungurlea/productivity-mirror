@@ -3,99 +3,84 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Productivity Mirror | 療癒系 AI 教練版</title>
+    <title>Productivity Mirror | Analytics Pro</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
         @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@700&display=swap');
-        
         body { font-family: 'Inter', sans-serif; background-color: #f8fafc; color: #1e293b; }
-        .card { background: white; border: 1px solid #e2e8f0; border-radius: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        .card { background: white; border: 1px solid #e2e8f0; border-radius: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
         .font-mono-custom { font-family: 'JetBrains Mono', monospace; }
+        .tag { padding: 2px 10px; border-radius: 8px; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; }
         
-        /* 會議與任務標籤樣式 */
-        .tag { padding: 4px 12px; border-radius: 10px; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; display: inline-block; }
-        
-        /* 計時器運行時的發光脈衝動畫 */
         @keyframes pulse-timer {
             0%, 100% { transform: scale(1); filter: drop-shadow(0 0 0px rgba(79, 70, 229, 0)); }
-            50% { transform: scale(1.03); filter: drop-shadow(0 0 10px rgba(79, 70, 229, 0.4)); }
+            50% { transform: scale(1.02); filter: drop-shadow(0 0 8px rgba(79, 70, 229, 0.3)); }
         }
-        .timer-running { color: #4f46e5 !important; animation: pulse-timer 2s infinite ease-in-out; }
-        
-        /* AI 建議區塊美化 */
-        .btn-ai { background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%); color: white; transition: all 0.3s; }
-        .btn-ai:hover { opacity: 0.9; transform: translateY(-1px); box-shadow: 0 10px 20px -5px rgba(99, 102, 241, 0.4); }
-        .prose h3 { font-weight: 800; color: #4338ca; margin-top: 1.5rem; margin-bottom: 0.5rem; }
-        .prose p { margin-bottom: 1rem; line-height: 1.7; color: #475569; }
-        .prose ul { list-style-type: disc; padding-left: 1.2rem; margin-bottom: 1rem; }
+        .timer-running { color: #4338ca !important; animation: pulse-timer 2s infinite ease-in-out; }
+        .btn-ai { background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%); color: white; }
     </style>
 </head>
-<body class="min-h-screen pb-24">
+<body class="min-h-screen pb-20">
 
     <main class="max-w-6xl mx-auto p-6 md:p-12">
         <header class="flex flex-col md:flex-row justify-between items-start md:items-end mb-10 gap-6">
-            <div class="flex items-center gap-6">
-                <div class="w-16 h-16 bg-indigo-600 rounded-[2rem] flex items-center justify-center shadow-2xl shadow-indigo-100">
-                    <div class="w-7 h-7 bg-white rounded-lg"></div>
+            <div class="flex items-center gap-5">
+                <div class="w-14 h-14 bg-indigo-600 rounded-3xl flex items-center justify-center shadow-xl">
+                    <div class="w-6 h-6 bg-white rounded-md"></div>
                 </div>
                 <div>
-                    <div class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Logged Focus Time</div>
-                    <h1 id="main-total-time" class="text-5xl font-black text-slate-900 font-mono-custom tracking-tighter">00:00:00</h1>
+                    <div class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Total Logged Today</div>
+                    <h1 id="main-total-time" class="text-4xl font-black text-slate-900 font-mono-custom">00:00:00</h1>
                 </div>
             </div>
             <div class="flex flex-wrap gap-3 w-full md:w-auto">
-                <input type="text" id="gas-url" placeholder="貼上你的 GAS Web App URL..." class="bg-white border border-slate-200 rounded-2xl px-6 py-4 text-xs w-full md:w-72 outline-none focus:ring-4 focus:ring-indigo-500/10 transition-all shadow-sm">
-                <button onclick="fetchData()" class="bg-slate-900 text-white px-8 py-4 rounded-2xl text-xs font-bold active:scale-95 transition-all shadow-lg">同步日曆</button>
-                <button onclick="getAIInsights()" id="ai-btn" class="btn-ai px-8 py-4 rounded-2xl text-xs font-bold hidden active:scale-95 shadow-lg">✨ AI 導師分析</button>
+                <input type="text" id="gas-url" placeholder="Paste GAS URL..." class="bg-white border border-slate-200 rounded-2xl px-6 py-3 text-xs w-full md:w-64 outline-none focus:ring-2 focus:ring-indigo-500">
+                <button onclick="fetchData()" class="bg-slate-900 text-white px-8 py-3 rounded-2xl text-xs font-bold active:scale-95">同步日曆</button>
+                <button onclick="getAIInsights()" id="ai-btn" class="btn-ai px-8 py-3 rounded-2xl text-xs font-bold hidden shadow-lg">✨ AI 導師分析</button>
             </div>
         </header>
 
-        <section id="summary-section" class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12 hidden">
-            <div class="card p-10 flex flex-col items-center">
-                <h3 class="text-[10px] font-black text-slate-400 uppercase mb-8 self-start tracking-widest">時間成分分析</h3>
-                <div class="w-44 h-44 mb-8">
+        <section id="summary-section" class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-10 hidden">
+            <div class="card p-8 flex flex-col items-center">
+                <h3 class="text-[10px] font-black text-slate-400 uppercase mb-8 self-start tracking-widest">時間分配比</h3>
+                <div class="w-40 h-40 mb-6">
                     <canvas id="typeChart"></canvas>
                 </div>
-                <div id="chart-legend" class="w-full space-y-4"></div>
+                <div id="chart-legend" class="w-full space-y-3 text-xs font-bold"></div>
             </div>
-            <div class="card p-10 lg:col-span-2">
-                <h3 class="text-[10px] font-black text-slate-400 uppercase mb-8 tracking-widest">計畫與實際對照 (分鐘)</h3>
-                <div class="h-64">
+            <div class="card p-8 lg:col-span-2">
+                <h3 class="text-[10px] font-black text-slate-400 uppercase mb-8 tracking-widest">計畫 vs 實際 (分鐘)</h3>
+                <div class="h-56">
                     <canvas id="comparisonChart"></canvas>
                 </div>
             </div>
         </section>
 
-        <section id="ai-panel" class="card p-10 mb-12 hidden border-t-8 border-indigo-500 bg-gradient-to-b from-indigo-50/30 to-white">
-            <div class="flex items-center gap-3 mb-6">
-                <span class="text-2xl">🌿</span>
-                <h3 class="text-sm font-black uppercase tracking-widest text-indigo-700">導師的暖心建議</h3>
-            </div>
-            <div id="ai-content" class="prose max-w-none">
-                </div>
+        <section id="ai-panel" class="card p-8 mb-10 hidden border-l-8 border-indigo-500 bg-indigo-50/20">
+            <div id="ai-content" class="prose max-w-none text-slate-600"></div>
         </section>
 
         <section class="card overflow-hidden">
-            <div class="px-10 py-8 border-b border-slate-100 bg-slate-50/30 flex justify-between items-center">
-                <h2 class="font-extrabold text-slate-800 text-xl tracking-tight">今日行程對焦</h2>
-                <div id="current-date" class="text-[11px] font-bold text-slate-400 bg-white border px-4 py-2 rounded-full shadow-sm uppercase tracking-widest"></div>
+            <div class="px-8 py-6 border-b border-slate-100 bg-slate-50/30 flex justify-between items-center">
+                <h2 class="font-extrabold text-slate-800">今日行程對焦</h2>
+                <div id="current-date" class="text-[10px] font-bold text-slate-400"></div>
             </div>
             <div class="overflow-x-auto">
                 <table class="w-full text-left">
                     <thead class="bg-slate-50/80 text-[10px] uppercase text-slate-400 font-black tracking-widest">
                         <tr>
-                            <th class="px-10 py-6">開始</th>
-                            <th class="px-10 py-6">預計</th>
-                            <th class="px-10 py-6">活動 / 類型</th>
-                            <th class="px-10 py-6 text-center">計時操作</th>
-                            <th class="px-10 py-6 text-right">實際執行 (HH:MM:SS)</th>
+                            <th class="px-8 py-5">開始</th>
+                            <th class="px-8 py-5">預計</th>
+                            <th class="px-8 py-5">活動內容 / 類型</th>
+                            <th class="px-8 py-5 text-center">計時操作</th>
+                            <th class="px-8 py-5 text-right">實際執行</th>
                         </tr>
                     </thead>
                     <tbody id="task-list">
-                        <tr><td colspan="5" class="px-10 py-24 text-center text-slate-300 italic font-medium">請在上方貼入網址並點擊同步。</td></tr>
+                        <tr><td colspan="5" class="px-8 py-20 text-center text-slate-300 italic">請同步日曆開始計時</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -107,73 +92,65 @@
         let timers = {}; 
         let typeChart, comparisonChart;
 
-        // 初始化
         document.getElementById('gas-url').value = localStorage.getItem('gas_url') || '';
         document.getElementById('current-date').innerText = new Date().toLocaleDateString('zh-TW', { weekday: 'long', month: 'long', day: 'numeric' });
 
-        // 格式化：秒 -> HH:MM:SS
-        function formatFullTime(totalSeconds) {
-            const h = Math.floor(totalSeconds / 3600);
-            const m = Math.floor((totalSeconds % 3600) / 60);
-            const s = totalSeconds % 60;
+        function formatToHHMMSS(totalSecs) {
+            const h = Math.floor(totalSecs / 3600);
+            const m = Math.floor((totalSecs % 3600) / 60);
+            const s = totalSecs % 60;
             return [h, m, s].map(v => v.toString().padStart(2, '0')).join(':');
         }
 
         async function fetchData() {
             const url = document.getElementById('gas-url').value;
-            if (!url) return alert('請輸入網址');
+            if (!url) return alert('請先輸入 GAS URL');
             localStorage.setItem('gas_url', url);
-            
             const listContainer = document.getElementById('task-list');
-            listContainer.innerHTML = '<tr><td colspan="5" class="px-10 py-24 text-center text-indigo-500 font-bold animate-pulse">正在同步日曆...</td></tr>';
-
+            listContainer.innerHTML = '<tr><td colspan="5" class="px-8 py-20 text-center text-indigo-500 font-bold animate-pulse">正在從日曆抓取資料...</td></tr>';
             try {
-                const response = await fetch(url);
-                taskData = await response.json();
+                const res = await fetch(url);
+                taskData = await res.json();
                 renderUI();
                 initCharts();
                 document.getElementById('ai-btn').classList.remove('hidden');
                 document.getElementById('summary-section').classList.remove('hidden');
-            } catch (e) { alert('同步失敗，請檢查網址與權限。'); }
+            } catch (e) { alert('同步失敗'); }
         }
 
         function renderUI() {
             const listContainer = document.getElementById('task-list');
             listContainer.innerHTML = '';
-
             taskData.forEach((task, index) => {
                 if (!timers[index]) timers[index] = { seconds: 0, interval: null, isRunning: false, isCompleted: false };
                 const t = timers[index];
                 const row = document.createElement('tr');
-                row.className = `border-b border-slate-50 transition-all ${t.isCompleted ? 'bg-slate-50/50 opacity-60' : 'hover:bg-slate-50/30'}`;
-                
+                row.className = `border-b border-slate-50 transition-all ${t.isCompleted ? 'bg-slate-50 opacity-60' : ''}`;
                 row.innerHTML = `
-                    <td class="px-10 py-7 font-mono text-[12px] font-bold text-slate-400">${task.startTime}</td>
-                    <td class="px-10 py-7 text-sm font-bold text-slate-700">${task.plannedMinutes}m</td>
-                    <td class="px-10 py-7">
+                    <td class="px-8 py-6 font-mono text-[11px] font-bold text-slate-400">${task.startTime}</td>
+                    <td class="px-8 py-6 text-sm font-bold text-slate-700">${task.plannedMinutes}m</td>
+                    <td class="px-8 py-6">
                         <div class="flex items-center gap-3 mb-2">
                             <span class="w-2.5 h-2.5 rounded-full" style="background-color: ${task.color}"></span>
                             <span class="font-bold text-slate-900">${task.title}</span>
                         </div>
                         <span class="tag" style="background-color: ${task.color}15; color: ${task.color}">${task.type}</span>
                     </td>
-                    <td class="px-10 py-7">
-                        <div class="flex justify-center items-center gap-3">
+                    <td class="px-8 py-6">
+                        <div class="flex justify-center gap-2">
                             ${!t.isCompleted ? `
-                                <button onclick="toggleTimer(${index})" class="w-12 h-12 rounded-2xl border border-slate-200 flex items-center justify-center bg-white hover:border-indigo-500 hover:shadow-md transition-all active:scale-90">
-                                    ${t.isRunning ? 
-                                        '<svg class="w-5 h-5 text-amber-500" fill="currentColor" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>' : 
-                                        '<svg class="w-5 h-5 text-emerald-500" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>'}
+                                <button onclick="toggleTimer(${index})" class="w-10 h-10 rounded-xl border border-slate-200 flex items-center justify-center bg-white">
+                                    ${t.isRunning ? '<svg class="w-5 h-5 text-amber-500" fill="currentColor" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>' : '<svg class="w-5 h-5 text-emerald-500" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>'}
                                 </button>
-                                <button onclick="finishTimer(${index})" class="w-12 h-12 rounded-2xl bg-slate-900 text-white flex items-center justify-center hover:bg-indigo-600 shadow-lg transition-all active:scale-90">
-                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>
+                                <button onclick="finishTimer(${index})" class="w-10 h-10 rounded-xl bg-slate-900 text-white flex items-center justify-center">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>
                                 </button>
-                            ` : `<button onclick="resetTimer(${index})" class="text-[10px] font-black text-slate-300 hover:text-red-500 tracking-widest uppercase">Reset</button>`}
+                            ` : `<button onclick="resetTimer(${index})" class="text-[10px] font-black text-slate-300 hover:text-red-500">RESET</button>`}
                         </div>
                     </td>
-                    <td class="px-10 py-7 text-right">
-                        <div id="display-${index}" class="text-lg font-mono-custom font-black ${t.isRunning ? 'timer-running' : 'text-slate-300'}">
-                            ${formatFullTime(t.seconds)}
+                    <td class="px-8 py-6 text-right">
+                        <div id="display-${index}" class="text-base font-mono-custom font-black ${t.isRunning ? 'timer-running' : 'text-slate-300'}">
+                            ${formatToHHMMSS(t.seconds)}
                         </div>
                     </td>
                 `;
@@ -187,31 +164,29 @@
             if (t.isRunning) {
                 clearInterval(t.interval);
                 t.isRunning = false;
-                renderUI();
             } else {
                 t.isRunning = true;
-                renderUI();
                 t.interval = setInterval(() => {
                     t.seconds++;
-                    const el = document.getElementById(`display-${index}`);
-                    if (el) el.innerText = formatFullTime(t.seconds);
+                    document.getElementById(`display-${index}`).innerText = formatToHHMMSS(t.seconds);
                     updateGrandTotal();
                     if (t.seconds % 10 === 0) updateCharts();
                 }, 1000);
             }
+            renderUI();
         }
 
         function finishTimer(index) { clearInterval(timers[index].interval); timers[index].isRunning = false; timers[index].isCompleted = true; renderUI(); updateCharts(); }
         function resetTimer(index) { clearInterval(timers[index].interval); timers[index] = { seconds: 0, interval: null, isRunning: false, isCompleted: false }; renderUI(); updateCharts(); }
-        function updateGrandTotal() { const s = Object.values(timers).reduce((a, b) => a + b.seconds, 0); document.getElementById('main-total-time').innerText = formatFullTime(s); }
+        function updateGrandTotal() { const s = Object.values(timers).reduce((a, b) => a + b.seconds, 0); document.getElementById('main-total-time').innerText = formatToHHMMSS(s); }
 
         function initCharts() {
-            const c1 = document.getElementById('typeChart').getContext('2d');
-            const c2 = document.getElementById('comparisonChart').getContext('2d');
+            const ctx1 = document.getElementById('typeChart').getContext('2d');
+            const ctx2 = document.getElementById('comparisonChart').getContext('2d');
             if (typeChart) typeChart.destroy();
             if (comparisonChart) comparisonChart.destroy();
-            typeChart = new Chart(c1, { type: 'doughnut', data: { labels: ['會議', '任務'], datasets: [{ data: [1, 1], backgroundColor: ['#f87171', '#60a5fa'], borderWidth: 0 }] }, options: { cutout: '82%', plugins: { legend: { display: false } } } });
-            comparisonChart = new Chart(c2, { type: 'bar', data: { labels: taskData.map(t => t.title.substring(0, 8)), datasets: [{ label: '計畫', data: taskData.map(t => t.plannedMinutes), backgroundColor: '#f1f5f9', borderRadius: 8 }, { label: '實際', data: taskData.map(t => 0), backgroundColor: '#6366f1', borderRadius: 8 }] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { display: false }, x: { grid: { display: false } } }, plugins: { legend: { display: false } } } });
+            typeChart = new Chart(ctx1, { type: 'doughnut', data: { labels: ['會議', '任務'], datasets: [{ data: [1, 1], backgroundColor: ['#f87171', '#60a5fa'], borderWidth: 0 }] }, options: { cutout: '80%', plugins: { legend: { display: false } } } });
+            comparisonChart = new Chart(ctx2, { type: 'bar', data: { labels: taskData.map(t => t.title.substring(0, 8)), datasets: [{ label: '計畫', data: taskData.map(t => t.plannedMinutes), backgroundColor: '#f1f5f9', borderRadius: 6 }, { label: '實際', data: taskData.map(t => 0), backgroundColor: '#6366f1', borderRadius: 6 }] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, display: false }, x: { grid: { display: false } } }, plugins: { legend: { display: false } } } });
             updateCharts();
         }
 
@@ -226,25 +201,21 @@
             typeChart.update();
             comparisonChart.data.datasets[1].data = actualMins;
             comparisonChart.update();
-            document.getElementById('chart-legend').innerHTML = `
-                <div class="flex justify-between text-[11px] font-bold"><span class="text-red-400">會議總計</span><span class="text-slate-700">${Math.round(mSecs/60)}m</span></div>
-                <div class="flex justify-between text-[11px] font-bold"><span class="text-blue-400">任務總計</span><span class="text-slate-700">${Math.round(tSecs/60)}m</span></div>
-            `;
+            document.getElementById('chart-legend').innerHTML = `<div class="flex justify-between text-red-500"><span>會議</span><span>${Math.round(mSecs/60)}m</span></div><div class="flex justify-between text-blue-500"><span>任務</span><span>${Math.round(tSecs/60)}m</span></div>`;
         }
 
         async function getAIInsights() {
             const url = document.getElementById('gas-url').value;
             const aiPanel = document.getElementById('ai-panel');
-            const aiContent = document.getElementById('ai-content');
             aiPanel.classList.remove('hidden');
-            aiContent.innerHTML = '<div class="animate-pulse italic text-indigo-500">導師正在細細感受你的努力，請等候片刻...</div>';
-            const dataStr = taskData.map((t, i) => `- ${t.title}(${t.type}): 計畫${t.plannedMinutes}m, 實際${Math.floor(timers[i].seconds/60)}m${timers[i].seconds%60}s`).join('\n');
+            document.getElementById('ai-content').innerHTML = '<div class="animate-pulse italic">導師正在準備熱茶與分析報告...</div>';
+            const dataStr = taskData.map((t, i) => `- ${t.title}(${t.type}): 預計 ${t.plannedMinutes}m, 實際 ${Math.floor(timers[i].seconds/60)}m`).join('\n');
             try {
                 const res = await fetch(url, { method: 'POST', body: JSON.stringify({ action: 'analyze', data: dataStr }) });
                 const text = await res.text();
-                aiContent.innerHTML = marked.parse(text);
+                document.getElementById('ai-content').innerHTML = marked.parse(text);
                 aiPanel.scrollIntoView({ behavior: 'smooth' });
-            } catch (e) { aiContent.innerText = "抱歉，剛才斷線了，請再試一次。"; }
+            } catch (e) { document.getElementById('ai-content').innerText = "連線失敗"; }
         }
     </script>
 </body>
