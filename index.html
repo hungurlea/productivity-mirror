@@ -3,74 +3,99 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Productivity Mirror | AutoSheet Classic</title>
+    <title>Productivity Mirror | 療癒系 AI 教練版</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@700&display=swap');
+        
         body { font-family: 'Inter', sans-serif; background-color: #f8fafc; color: #1e293b; }
-        .card { background: white; border: 1px solid #e2e8f0; border-radius: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
-        .btn-primary { background-color: #10b981; color: white; transition: all 0.2s; }
-        .btn-primary:hover { background-color: #059669; }
-        .tag { padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; }
-        .timer-running { color: #4f46e5; font-weight: 800; text-shadow: 0 0 10px rgba(79, 70, 229, 0.2); }
+        .card { background: white; border: 1px solid #e2e8f0; border-radius: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        .font-mono-custom { font-family: 'JetBrains Mono', monospace; }
+        
+        /* 會議與任務標籤樣式 */
+        .tag { padding: 4px 12px; border-radius: 10px; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; display: inline-block; }
+        
+        /* 計時器運行時的發光脈衝動畫 */
+        @keyframes pulse-timer {
+            0%, 100% { transform: scale(1); filter: drop-shadow(0 0 0px rgba(79, 70, 229, 0)); }
+            50% { transform: scale(1.03); filter: drop-shadow(0 0 10px rgba(79, 70, 229, 0.4)); }
+        }
+        .timer-running { color: #4f46e5 !important; animation: pulse-timer 2s infinite ease-in-out; }
+        
+        /* AI 建議區塊美化 */
+        .btn-ai { background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%); color: white; transition: all 0.3s; }
+        .btn-ai:hover { opacity: 0.9; transform: translateY(-1px); box-shadow: 0 10px 20px -5px rgba(99, 102, 241, 0.4); }
+        .prose h3 { font-weight: 800; color: #4338ca; margin-top: 1.5rem; margin-bottom: 0.5rem; }
+        .prose p { margin-bottom: 1rem; line-height: 1.7; color: #475569; }
+        .prose ul { list-style-type: disc; padding-left: 1.2rem; margin-bottom: 1rem; }
     </style>
 </head>
-<body class="min-h-screen">
+<body class="min-h-screen pb-24">
 
     <main class="max-w-6xl mx-auto p-6 md:p-12">
-        <header class="flex flex-col md:flex-row justify-between items-start md:items-end mb-12 gap-6">
-            <div>
-                <div class="flex items-center gap-4">
-                    <div class="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center shadow-lg shadow-indigo-100">
-                        <div class="w-5 h-5 bg-white rounded-md"></div>
-                    </div>
-                    <div>
-                        <div class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Logged time Today</div>
-                        <h1 id="main-total-time" class="text-4xl font-extrabold text-slate-900 tracking-tight">0h 00m</h1>
-                    </div>
+        <header class="flex flex-col md:flex-row justify-between items-start md:items-end mb-10 gap-6">
+            <div class="flex items-center gap-6">
+                <div class="w-16 h-16 bg-indigo-600 rounded-[2rem] flex items-center justify-center shadow-2xl shadow-indigo-100">
+                    <div class="w-7 h-7 bg-white rounded-lg"></div>
+                </div>
+                <div>
+                    <div class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-1">Logged Focus Time</div>
+                    <h1 id="main-total-time" class="text-5xl font-black text-slate-900 font-mono-custom tracking-tighter">00:00:00</h1>
                 </div>
             </div>
-            <div class="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
-                <input type="text" id="gas-url" placeholder="貼上您的 GAS Web App URL..." class="bg-white border border-slate-200 rounded-xl px-5 py-3 text-xs w-full md:w-80 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm transition-all">
-                <button onclick="fetchData()" class="btn-primary px-8 py-3 rounded-xl text-sm font-bold shadow-md active:scale-95 whitespace-nowrap tracking-wide">Sync Calendar</button>
+            <div class="flex flex-wrap gap-3 w-full md:w-auto">
+                <input type="text" id="gas-url" placeholder="貼上你的 GAS Web App URL..." class="bg-white border border-slate-200 rounded-2xl px-6 py-4 text-xs w-full md:w-72 outline-none focus:ring-4 focus:ring-indigo-500/10 transition-all shadow-sm">
+                <button onclick="fetchData()" class="bg-slate-900 text-white px-8 py-4 rounded-2xl text-xs font-bold active:scale-95 transition-all shadow-lg">同步日曆</button>
+                <button onclick="getAIInsights()" id="ai-btn" class="btn-ai px-8 py-4 rounded-2xl text-xs font-bold hidden active:scale-95 shadow-lg">✨ AI 導師分析</button>
             </div>
         </header>
 
-        <section id="summary-section" class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-10 hidden">
-            <div class="card p-8 flex flex-col items-center">
-                <h3 class="text-[11px] font-bold text-slate-400 uppercase mb-8 self-start tracking-widest">Time Distribution</h3>
+        <section id="summary-section" class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12 hidden">
+            <div class="card p-10 flex flex-col items-center">
+                <h3 class="text-[10px] font-black text-slate-400 uppercase mb-8 self-start tracking-widest">時間成分分析</h3>
                 <div class="w-44 h-44 mb-8">
                     <canvas id="typeChart"></canvas>
                 </div>
-                <div id="chart-legend" class="w-full space-y-5"></div>
+                <div id="chart-legend" class="w-full space-y-4"></div>
             </div>
-            <div class="card p-8 lg:col-span-2">
-                <h3 class="text-[11px] font-bold text-slate-400 uppercase mb-8 tracking-widest">Planned vs Actual (Minutes)</h3>
+            <div class="card p-10 lg:col-span-2">
+                <h3 class="text-[10px] font-black text-slate-400 uppercase mb-8 tracking-widest">計畫與實際對照 (分鐘)</h3>
                 <div class="h-64">
                     <canvas id="comparisonChart"></canvas>
                 </div>
             </div>
         </section>
 
+        <section id="ai-panel" class="card p-10 mb-12 hidden border-t-8 border-indigo-500 bg-gradient-to-b from-indigo-50/30 to-white">
+            <div class="flex items-center gap-3 mb-6">
+                <span class="text-2xl">🌿</span>
+                <h3 class="text-sm font-black uppercase tracking-widest text-indigo-700">導師的暖心建議</h3>
+            </div>
+            <div id="ai-content" class="prose max-w-none">
+                </div>
+        </section>
+
         <section class="card overflow-hidden">
-            <div class="px-8 py-6 border-b border-slate-100 bg-slate-50/30 flex justify-between items-center">
-                <h2 class="font-extrabold text-slate-800 tracking-tight">Daily Time Entries</h2>
-                <div class="text-[10px] font-bold text-slate-400 uppercase tracking-widest bg-white px-4 py-1.5 rounded-full border border-slate-200 shadow-sm" id="current-date">Today</div>
+            <div class="px-10 py-8 border-b border-slate-100 bg-slate-50/30 flex justify-between items-center">
+                <h2 class="font-extrabold text-slate-800 text-xl tracking-tight">今日行程對焦</h2>
+                <div id="current-date" class="text-[11px] font-bold text-slate-400 bg-white border px-4 py-2 rounded-full shadow-sm uppercase tracking-widest"></div>
             </div>
             <div class="overflow-x-auto">
-                <table class="w-full text-left border-collapse">
-                    <thead class="bg-slate-50/80 text-[10px] uppercase text-slate-400 font-extrabold tracking-widest">
+                <table class="w-full text-left">
+                    <thead class="bg-slate-50/80 text-[10px] uppercase text-slate-400 font-black tracking-widest">
                         <tr>
-                            <th class="px-8 py-5 border-b border-slate-100">Timestamp</th>
-                            <th class="px-8 py-5 border-b border-slate-100">Planned</th>
-                            <th class="px-8 py-5 border-b border-slate-100">Activity</th>
-                            <th class="px-8 py-5 border-b border-slate-100 text-center">Controls</th>
-                            <th class="px-8 py-5 border-b border-slate-100 text-right">Actual / Offset</th>
+                            <th class="px-10 py-6">開始</th>
+                            <th class="px-10 py-6">預計</th>
+                            <th class="px-10 py-6">活動 / 類型</th>
+                            <th class="px-10 py-6 text-center">計時操作</th>
+                            <th class="px-10 py-6 text-right">實際執行 (HH:MM:SS)</th>
                         </tr>
                     </thead>
                     <tbody id="task-list">
-                        <tr><td colspan="5" class="px-8 py-24 text-center text-slate-400 font-medium italic">請貼上 GAS 網址並點擊同步開始計時。</td></tr>
+                        <tr><td colspan="5" class="px-10 py-24 text-center text-slate-300 italic font-medium">請在上方貼入網址並點擊同步。</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -82,151 +107,144 @@
         let timers = {}; 
         let typeChart, comparisonChart;
 
+        // 初始化
         document.getElementById('gas-url').value = localStorage.getItem('gas_url') || '';
         document.getElementById('current-date').innerText = new Date().toLocaleDateString('zh-TW', { weekday: 'long', month: 'long', day: 'numeric' });
 
-        // 格式化：125 -> 2h 5m
-        function formatDuration(totalMins) {
-            const h = Math.floor(Math.abs(totalMins) / 60);
-            const m = Math.round(Math.abs(totalMins) % 60);
-            const sign = totalMins < 0 ? "-" : (totalMins > 0 ? "+" : "");
-            return h > 0 ? `${sign}${h}h ${m}m` : `${sign}${m}m`;
-        }
-
-        // 碼錶格式化：00:00:00
-        function formatStopwatch(s) {
-            const hrs = Math.floor(s / 3600);
-            const mins = Math.floor((s % 3600) / 60);
-            const secs = s % 60;
-            const hPart = hrs > 0 ? `${hrs}h ` : "";
-            return `${hPart}${mins}m ${secs}s`;
+        // 格式化：秒 -> HH:MM:SS
+        function formatFullTime(totalSeconds) {
+            const h = Math.floor(totalSeconds / 3600);
+            const m = Math.floor((totalSeconds % 3600) / 60);
+            const s = totalSeconds % 60;
+            return [h, m, s].map(v => v.toString().padStart(2, '0')).join(':');
         }
 
         async function fetchData() {
             const url = document.getElementById('gas-url').value;
-            if (!url) return alert('請先輸入 GAS URL');
+            if (!url) return alert('請輸入網址');
             localStorage.setItem('gas_url', url);
+            
             const listContainer = document.getElementById('task-list');
-            listContainer.innerHTML = '<tr><td colspan="5" class="px-8 py-24 text-center text-indigo-500 font-bold tracking-widest uppercase text-xs">同步中，請稍候...</td></tr>';
+            listContainer.innerHTML = '<tr><td colspan="5" class="px-10 py-24 text-center text-indigo-500 font-bold animate-pulse">正在同步日曆...</td></tr>';
 
             try {
                 const response = await fetch(url);
                 taskData = await response.json();
                 renderUI();
                 initCharts();
-            } catch (error) {
-                alert('抓取失敗，請確認 URL 與權限設定。');
-            }
+                document.getElementById('ai-btn').classList.remove('hidden');
+                document.getElementById('summary-section').classList.remove('hidden');
+            } catch (e) { alert('同步失敗，請檢查網址與權限。'); }
         }
 
         function renderUI() {
             const listContainer = document.getElementById('task-list');
-            document.getElementById('summary-section').classList.remove('hidden');
             listContainer.innerHTML = '';
 
             taskData.forEach((task, index) => {
                 if (!timers[index]) timers[index] = { seconds: 0, interval: null, isRunning: false, isCompleted: false };
-                const timer = timers[index];
-                
+                const t = timers[index];
                 const row = document.createElement('tr');
-                row.className = `group hover:bg-slate-50 transition-colors ${timer.isCompleted ? 'bg-slate-50/50 opacity-70' : ''}`;
+                row.className = `border-b border-slate-50 transition-all ${t.isCompleted ? 'bg-slate-50/50 opacity-60' : 'hover:bg-slate-50/30'}`;
                 
                 row.innerHTML = `
-                    <td class="px-8 py-6 border-b border-slate-100 text-[11px] font-bold text-slate-400 font-mono">${task.startTime}</td>
-                    <td class="px-8 py-6 border-b border-slate-100 text-sm font-extrabold text-slate-800">${formatDuration(task.plannedMinutes)}</td>
-                    <td class="px-8 py-6 border-b border-slate-100">
-                        <div class="flex items-center gap-3">
-                            <span class="w-3 h-3 rounded-full ring-4 ring-slate-50" style="background-color: ${task.color}"></span>
-                            <span class="font-bold text-slate-900 text-sm tracking-tight">${task.title}</span>
+                    <td class="px-10 py-7 font-mono text-[12px] font-bold text-slate-400">${task.startTime}</td>
+                    <td class="px-10 py-7 text-sm font-bold text-slate-700">${task.plannedMinutes}m</td>
+                    <td class="px-10 py-7">
+                        <div class="flex items-center gap-3 mb-2">
+                            <span class="w-2.5 h-2.5 rounded-full" style="background-color: ${task.color}"></span>
+                            <span class="font-bold text-slate-900">${task.title}</span>
                         </div>
-                        <div class="mt-2"><span class="tag" style="background-color: ${task.color}15; color: ${task.color}">${task.type}</span></div>
+                        <span class="tag" style="background-color: ${task.color}15; color: ${task.color}">${task.type}</span>
                     </td>
-                    <td class="px-8 py-6 border-b border-slate-100">
+                    <td class="px-10 py-7">
                         <div class="flex justify-center items-center gap-3">
-                            ${!timer.isCompleted ? `
-                                <button onclick="startTimer(${index})" class="w-10 h-10 rounded-xl border border-slate-200 flex items-center justify-center hover:bg-emerald-500 hover:text-white text-emerald-600 transition-all shadow-sm">
-                                    <svg class="w-4 h-4 ml-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                            ${!t.isCompleted ? `
+                                <button onclick="toggleTimer(${index})" class="w-12 h-12 rounded-2xl border border-slate-200 flex items-center justify-center bg-white hover:border-indigo-500 hover:shadow-md transition-all active:scale-90">
+                                    ${t.isRunning ? 
+                                        '<svg class="w-5 h-5 text-amber-500" fill="currentColor" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>' : 
+                                        '<svg class="w-5 h-5 text-emerald-500" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>'}
                                 </button>
-                                <button onclick="pauseTimer(${index})" class="w-10 h-10 rounded-xl border border-slate-200 flex items-center justify-center hover:bg-amber-500 hover:text-white text-amber-600 transition-all shadow-sm">
-                                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+                                <button onclick="finishTimer(${index})" class="w-12 h-12 rounded-2xl bg-slate-900 text-white flex items-center justify-center hover:bg-indigo-600 shadow-lg transition-all active:scale-90">
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>
                                 </button>
-                                <button onclick="finishTimer(${index})" class="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center hover:bg-indigo-700 transition-all shadow-md">
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                                </button>
-                            ` : `<button onclick="resetTimer(${index})" class="text-[10px] font-black text-slate-300 hover:text-red-500 uppercase tracking-widest transition-colors">修正 / 重置</button>`}
+                            ` : `<button onclick="resetTimer(${index})" class="text-[10px] font-black text-slate-300 hover:text-red-500 tracking-widest uppercase">Reset</button>`}
                         </div>
                     </td>
-                    <td class="px-8 py-6 border-b border-slate-100 text-right">
-                        <div id="timer-display-${index}" class="text-sm font-mono font-extrabold ${timer.isRunning ? 'timer-running' : 'text-slate-400'}">
-                            ${formatStopwatch(timer.seconds)}
+                    <td class="px-10 py-7 text-right">
+                        <div id="display-${index}" class="text-lg font-mono-custom font-black ${t.isRunning ? 'timer-running' : 'text-slate-300'}">
+                            ${formatFullTime(t.seconds)}
                         </div>
-                        <div id="diff-display-${index}" class="text-[10px] font-black mt-1 uppercase tracking-tighter">--</div>
                     </td>
                 `;
                 listContainer.appendChild(row);
-                updateDiffDisplay(index, task.plannedMinutes);
             });
-            updateTotalLoggedTime();
+            updateGrandTotal();
         }
 
-        function startTimer(index) {
-            if (timers[index].isRunning || timers[index].isCompleted) return;
-            timers[index].isRunning = true;
-            renderUI();
-            timers[index].interval = setInterval(() => {
-                timers[index].seconds++;
-                const display = document.getElementById(`timer-display-${index}`);
-                if (display) {
-                    display.innerText = formatStopwatch(timers[index].seconds);
-                    updateDiffDisplay(index, taskData[index].plannedMinutes);
-                }
-                if (timers[index].seconds % 10 === 0) { updateCharts(); updateTotalLoggedTime(); }
-            }, 1000);
+        function toggleTimer(index) {
+            const t = timers[index];
+            if (t.isRunning) {
+                clearInterval(t.interval);
+                t.isRunning = false;
+                renderUI();
+            } else {
+                t.isRunning = true;
+                renderUI();
+                t.interval = setInterval(() => {
+                    t.seconds++;
+                    const el = document.getElementById(`display-${index}`);
+                    if (el) el.innerText = formatFullTime(t.seconds);
+                    updateGrandTotal();
+                    if (t.seconds % 10 === 0) updateCharts();
+                }, 1000);
+            }
         }
 
-        function pauseTimer(index) { timers[index].isRunning = false; clearInterval(timers[index].interval); renderUI(); updateCharts(); updateTotalLoggedTime(); }
-        function finishTimer(index) { timers[index].isRunning = false; timers[index].isCompleted = true; clearInterval(timers[index].interval); renderUI(); updateCharts(); updateTotalLoggedTime(); }
-        function resetTimer(index) { if(!confirm("確定要重置並重新開始計時嗎？")) return; clearInterval(timers[index].interval); timers[index] = { seconds: 0, interval: null, isRunning: false, isCompleted: false }; renderUI(); updateCharts(); updateTotalLoggedTime(); }
-        
-        function updateTotalLoggedTime() { 
-            let totalSecs = Object.values(timers).reduce((acc, t) => acc + t.seconds, 0); 
-            document.getElementById('main-total-time').innerText = formatDuration(totalSecs / 60); 
-        }
-
-        function updateDiffDisplay(index, planned) {
-            const actual = Math.floor(timers[index].seconds / 60);
-            const display = document.getElementById(`diff-display-${index}`);
-            if (!display || timers[index].seconds < 1) return;
-            const diff = actual - planned;
-            display.innerText = (diff > 0 ? `+ ${formatDuration(diff)}` : (diff < 0 ? formatDuration(diff) : 'On Schedule'));
-            display.className = `text-[10px] font-black mt-1 uppercase tracking-tighter ${diff > 0 ? 'text-red-500' : (diff < 0 ? 'text-emerald-600' : 'text-indigo-600')}`;
-        }
+        function finishTimer(index) { clearInterval(timers[index].interval); timers[index].isRunning = false; timers[index].isCompleted = true; renderUI(); updateCharts(); }
+        function resetTimer(index) { clearInterval(timers[index].interval); timers[index] = { seconds: 0, interval: null, isRunning: false, isCompleted: false }; renderUI(); updateCharts(); }
+        function updateGrandTotal() { const s = Object.values(timers).reduce((a, b) => a + b.seconds, 0); document.getElementById('main-total-time').innerText = formatFullTime(s); }
 
         function initCharts() {
-            const ctx1 = document.getElementById('typeChart').getContext('2d');
-            const ctx2 = document.getElementById('comparisonChart').getContext('2d');
+            const c1 = document.getElementById('typeChart').getContext('2d');
+            const c2 = document.getElementById('comparisonChart').getContext('2d');
             if (typeChart) typeChart.destroy();
             if (comparisonChart) comparisonChart.destroy();
-            typeChart = new Chart(ctx1, { type: 'doughnut', data: { labels: ['Meetings', 'Tasks'], datasets: [{ data: [1, 1], backgroundColor: ['#f87171', '#60a5fa'], borderWidth: 8, borderColor: '#ffffff' }] }, options: { cutout: '85%', plugins: { legend: { display: false } } } });
-            comparisonChart = new Chart(ctx2, { type: 'bar', data: { labels: taskData.map(t => t.title.substring(0, 10)), datasets: [{ label: 'Planned', data: taskData.map(t => t.plannedMinutes), backgroundColor: '#f1f5f9', borderRadius: 8 }, { label: 'Actual', data: taskData.map(t => 0), backgroundColor: '#10b981', borderRadius: 8 }] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { display: false }, x: { grid: { display: false }, ticks: { font: { size: 9, weight: 'bold' }, color: '#94a3b8' } } }, plugins: { legend: { display: false } } } });
+            typeChart = new Chart(c1, { type: 'doughnut', data: { labels: ['會議', '任務'], datasets: [{ data: [1, 1], backgroundColor: ['#f87171', '#60a5fa'], borderWidth: 0 }] }, options: { cutout: '82%', plugins: { legend: { display: false } } } });
+            comparisonChart = new Chart(c2, { type: 'bar', data: { labels: taskData.map(t => t.title.substring(0, 8)), datasets: [{ label: '計畫', data: taskData.map(t => t.plannedMinutes), backgroundColor: '#f1f5f9', borderRadius: 8 }, { label: '實際', data: taskData.map(t => 0), backgroundColor: '#6366f1', borderRadius: 8 }] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { display: false }, x: { grid: { display: false } } }, plugins: { legend: { display: false } } } });
             updateCharts();
         }
 
         function updateCharts() {
-            if (!typeChart) return;
-            let actualMeeting = 0, actualTask = 0;
-            const actualData = taskData.map((task, index) => {
-                const mins = Math.floor(timers[index].seconds / 60);
-                if (task.type === "會議") actualMeeting += mins; else actualTask += mins;
+            let mSecs = 0, tSecs = 0;
+            const actualMins = taskData.map((task, i) => {
+                const mins = timers[i].seconds / 60;
+                if (task.type === '會議') mSecs += timers[i].seconds; else tSecs += timers[i].seconds;
                 return mins;
             });
-            typeChart.data.datasets[0].data = [actualMeeting || 0.1, actualTask || 0.1];
+            typeChart.data.datasets[0].data = [mSecs || 0.1, tSecs || 0.1];
             typeChart.update();
-            comparisonChart.data.datasets[1].data = actualData;
+            comparisonChart.data.datasets[1].data = actualMins;
             comparisonChart.update();
-            const legend = document.getElementById('chart-legend');
-            const total = actualMeeting + actualTask || 1;
-            legend.innerHTML = `<div class="space-y-1"><div class="flex justify-between text-[10px] font-extrabold uppercase tracking-widest text-slate-400"><span>Meetings</span> <span class="text-slate-900">${formatDuration(actualMeeting)}</span></div><div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden"><div class="bg-red-400 h-full transition-all duration-500" style="width: ${(actualMeeting/total)*100}%"></div></div></div><div class="space-y-1"><div class="flex justify-between text-[10px] font-extrabold uppercase tracking-widest text-slate-400"><span>Personal Tasks</span> <span class="text-slate-900">${formatDuration(actualTask)}</span></div><div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden"><div class="bg-blue-400 h-full transition-all duration-500" style="width: ${(actualTask/total)*100}%"></div></div></div>`;
+            document.getElementById('chart-legend').innerHTML = `
+                <div class="flex justify-between text-[11px] font-bold"><span class="text-red-400">會議總計</span><span class="text-slate-700">${Math.round(mSecs/60)}m</span></div>
+                <div class="flex justify-between text-[11px] font-bold"><span class="text-blue-400">任務總計</span><span class="text-slate-700">${Math.round(tSecs/60)}m</span></div>
+            `;
+        }
+
+        async function getAIInsights() {
+            const url = document.getElementById('gas-url').value;
+            const aiPanel = document.getElementById('ai-panel');
+            const aiContent = document.getElementById('ai-content');
+            aiPanel.classList.remove('hidden');
+            aiContent.innerHTML = '<div class="animate-pulse italic text-indigo-500">導師正在細細感受你的努力，請等候片刻...</div>';
+            const dataStr = taskData.map((t, i) => `- ${t.title}(${t.type}): 計畫${t.plannedMinutes}m, 實際${Math.floor(timers[i].seconds/60)}m${timers[i].seconds%60}s`).join('\n');
+            try {
+                const res = await fetch(url, { method: 'POST', body: JSON.stringify({ action: 'analyze', data: dataStr }) });
+                const text = await res.text();
+                aiContent.innerHTML = marked.parse(text);
+                aiPanel.scrollIntoView({ behavior: 'smooth' });
+            } catch (e) { aiContent.innerText = "抱歉，剛才斷線了，請再試一次。"; }
         }
     </script>
 </body>
